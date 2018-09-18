@@ -3,27 +3,31 @@ require 'json'
 require 'pry'
 
 def helper_movie(hash, char)
-  hash.each do |k, v|
-    if k == "results"
-      v.each do |person|
-        if person["name"].downcase == char.downcase
-          return person["films"]
-        end
-      end
+  hash['results'].each do |person|
+    if person["name"].downcase == char.downcase
+      return person["films"]
     end
   end
+  return nil
 end
 
-def get_character_movies_from_api(character)
-  response_string = RestClient.get('http://www.swapi.co/api/people/')
+def get_character_movies_from_api(character, url)
+  response_string = RestClient.get(url)
   response_hash = JSON.parse(response_string)
 
   movie_arr = helper_movie(response_hash, character)
 
   films_array = []
-  movie_arr.each do |movie|
-    movie_string = RestClient.get(movie)
-    films_array << movie_hash = JSON.parse(movie_string)
+  if movie_arr == nil
+    next_page = response_hash["next"]
+    if next_page
+      return get_character_movies_from_api(character, next_page)
+    end
+  else
+    movie_arr.each do |movie|
+      movie_string = RestClient.get(movie)
+      films_array << movie_hash = JSON.parse(movie_string)
+    end
   end
 
   return films_array
@@ -37,7 +41,7 @@ def print_movies(films_hash)
 end
 
 def show_character_movies(character)
-  films_array = get_character_movies_from_api(character)
+  films_array = get_character_movies_from_api(character, 'http://www.swapi.co/api/people/')
   print_movies(films_array)
 end
 
